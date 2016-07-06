@@ -27,7 +27,7 @@ from time import localtime
 ################################################################################
 # CONFIGURE ME
 ################################################################################
-INTERVAL = 300
+INTERVAL = 60
 
 ################################################################################
 # DO NOT CHANGE BEYOND THIS POINT!
@@ -140,13 +140,13 @@ def read_callback():
 
                         # Walk throug all hosts in cluster, collect its metrics and dispatch them
                         collectd.info("read_callback: found %d hosts in cluster %s" % (len(cluster.host), cluster.name))
-                        colletMetricsForEntities(performanceManager, env['host_counter_ids'], cluster.host, cluster._moId)
+                        colletMetricsForEntities(performanceManager, env['host_counter_ids'], cluster.host, cluster.name)
 
                         # Walk throug all vms in host, collect its metrics and dispatch them
                         for host in cluster.host:
                             if host._wsdlName == "HostSystem":
                                 collectd.info("read_callback: found %d vms in host %s" % (len(host.vm), host.name))
-                                colletMetricsForEntities(performanceManager, env['vm_counter_ids'], host.vm, cluster._moId)
+                                colletMetricsForEntities(performanceManager, env['vm_counter_ids'], host.vm, cluster.name)
 
 def colletMetricsForEntities(performanceManager, filteredMetricIds, entities, cluster_name):
 
@@ -230,7 +230,9 @@ def colletMetricsForEntities(performanceManager, filteredMetricIds, entities, cl
                 if rollupType == vim.PerformanceManager.CounterInfo.RollupType.maximum :
                     print ""
                 rollupType = truncate(rollupType)
-                type_instance_str = cluster_name + "." + entities[p]._wsdlName + "." + entities[p]._moId + "." + group + "." + instance + "." + rollupType + "." + counter + "." + unit
+		entitiesName = FQDNtruncate(entities[p].name)
+ 		ObjectType = Objtruncate(entities[p]._wsdlName)
+                type_instance_str = cluster_name + "." + ObjectType + "." + entitiesName + "." + group + "." + instance + "." + rollupType + "." + counter + "." + unit
                 type_instance_str = type_instance_str.replace(' ', '_')
 
                 # now dispatch to collectd
@@ -289,6 +291,25 @@ def truncate(str):
 
     # truncate groups
     str = str.replace('datastore', 'ds')
+
+    return str
+
+def FQDNtruncate(str):
+
+    # truncate fqdn
+    m = re.match('(?=^.{1,254}$)(^(?:(?!\d+\.|-)[a-zA-Z0-9_\-]{1,63}(?<!-)\.?)+(?:[a-zA-Z]{2,})$)', str, re.IGNORECASE)
+    if m:
+        str = str.split(".", 1)[0]
+
+    return str
+
+def Objtruncate(str):
+
+    # truncate object type
+    if str == 'HostSystem':
+	str = str.replace('HostSystem', 'HS')
+    elif str == 'VirtualMachine':
+	str = str.replace('VirtualMachine', 'VM')
 
     return str
 
