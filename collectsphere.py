@@ -148,32 +148,33 @@ def read_callback():
                                 collectd.info("read_callback: found %d vms in host %s" % (len(host.vm), host.name))
                                 colletMetricsForEntities(performanceManager, env['vm_counter_ids'], host.vm, cluster.name)
 
-def colletMetricsForEntities(performanceManager, filteredMetricIds, entities, cluster_name):
-
-    # Definition of the queries for getting performance data from vCenter
-    qSpecs = []
-    qSpec = vim.PerformanceManager.QuerySpec()
-    qSpec.metricId = filteredMetricIds
-    qSpec.format = "normal"
-    # Define the default time range in which the data should be collected (from
+def colletMetricsForEntities(performanceManager, filteredMetricIds, entities, cluster_name): 
+	qSpecs = []
+	# Define the default time range in which the data should be collected (from
     # now to INTERVAL seconds)
     endTime = datetime.datetime.today()
     startTime = datetime.datetime.today() - datetime.timedelta(seconds = INTERVAL)
-    qSpec.endTime = endTime
-    qSpec.startTime = startTime
-    # Define the interval, in seconds, for the performance statistics. This
-    # means for any entity and any metric there will be
-    # INTERVAL / qSpec.intervalId values collected. Leave blank or use
-    # performanceManager.historicalInterval[i].samplingPeriod for
-    # aggregated values
-    qSpec.intervalId = 20
 
     # For any entity there has to be an own query.
     if len(entities) == 0:
         return
     for entity in entities:
-        qSpec.entity = entity
-        qSpecs.append(qSpec)
+        # Definition of the queries for getting performance data from vCenter
+		qSpec = []
+		qSpec = vim.PerformanceManager.QuerySpec()
+		qSpec.metricId = filteredMetricIds
+		qSpec.format = "normal"
+		qSpec.endTime = endTime
+		qSpec.startTime = startTime
+		# Define the interval, in seconds, for the performance statistics. This
+		# means for any entity and any metric there will be
+		# INTERVAL / qSpec.intervalId values collected. Leave blank or use
+		# performanceManager.historicalInterval[i].samplingPeriod for
+		# aggregated values
+		qSpec.intervalId = 20
+		qSpec.entity = entity
+		if qSpec not in qSpecs:
+			qSpecs.append(qSpec)
 
     # Retrieves the performance metrics for the specified entity (or entities)
     # based on the properties specified in the qSpecs
